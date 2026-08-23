@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page not found — AIO MangaVerse</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="site-nav"></div>
+
+<header style="background:var(--ink);color:var(--paper);border-bottom:4px solid var(--accent);padding:48px 0;">
+  <div class="container">
+    <span class="eyebrow">Error 404</span>
+    <h1 style="font-size:clamp(2.2rem,5vw,3.6rem);">This panel's missing.</h1>
+  </div>
+</header>
+
+<main class="container section" style="max-width:640px;">
+  <div class="empty-state" style="border-style:solid;">
+    <h3>We couldn't find that page</h3>
+    <p>The link might be broken, or the page may have moved. Try searching the catalog, or head back to the homepage.</p>
+    <form id="notFoundSearch" role="search" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;">
+      <input id="notFoundInput" type="search" placeholder="Search titles&hellip;" aria-label="Search titles"
+        style="padding:12px 14px;border:2px solid var(--ink);font-family:var(--font-body);font-size:0.95rem;min-width:220px;">
+      <button class="btn btn--accent" type="submit">Search</button>
+    </form>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <a class="btn btn--accent" href="index.html">Back to home</a>
+      <a class="btn btn--ghost" href="browse.html">Browse the catalog</a>
+    </div>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.getElementById("notFoundSearch").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const q = document.getElementById("notFoundInput").value.trim();
+    location.href = "browse.html" + (q ? "?q=" + encodeURIComponent(q) : "");
+  });
+</script>
+</body>
+</html>

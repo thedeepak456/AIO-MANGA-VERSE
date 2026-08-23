@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discover — AIO MangaVerse</title>
+<meta name="description" content="Search thousands more titles beyond the AIO MangaVerse catalog, live from MyAnimeList, and track the ones you want to read.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="site-nav"></div>
+
+<header style="background:var(--ink);color:var(--paper);border-bottom:4px solid var(--accent);padding:40px 0;">
+  <div class="container">
+    <span class="eyebrow">Beyond the catalog</span>
+    <h1 style="font-size:clamp(2rem,4vw,3.2rem);">Discover</h1>
+    <p style="color:var(--paper-dim);max-width:60ch;">
+      Live search across thousands of series via MyAnimeList's open database — for
+      when you've read everything in our own catalog. Track anything here and it'll
+      show up in <a href="library.html" style="color:var(--gold);">My Library</a>
+      under &ldquo;From Discover.&rdquo;
+    </p>
+  </div>
+</header>
+
+<main class="container section">
+  <form id="discoverForm" role="search" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;">
+    <input id="discoverInput" type="search" placeholder="Search any manga or anime title&hellip;" aria-label="Search titles on MyAnimeList"
+      style="flex:1;min-width:220px;padding:12px 14px;border:2px solid var(--ink);font-family:var(--font-body);font-size:0.95rem;">
+    <button class="btn btn--accent" type="submit">Search</button>
+  </form>
+
+  <div id="discoverStatus" class="api-status"></div>
+  <div id="discoverResults"></div>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    await MV.ready;
+    const form = document.getElementById("discoverForm");
+    const input = document.getElementById("discoverInput");
+    const statusMount = document.getElementById("discoverStatus");
+    const resultsMount = document.getElementById("discoverResults");
+    const params = new URLSearchParams(location.search);
+    const initialQuery = params.get("q") || "";
+    input.value = initialQuery;
+
+    function cardHTML(item) {
+      const id = "mal-" + item.mal_id;
+      const tracked = MV.isExternalTracked(id);
+      const image = item.images?.jpg?.image_url || "";
+      const synopsis = (item.synopsis || "No synopsis available.").slice(0, 160) + ((item.synopsis || "").length > 160 ? "…" : "");
+      const score = item.score ? item.score.toFixed(1) + " \u2605" : "Unrated";
+      return `
+        <div class="discover-card" data-id="${id}">
+          <img src="${image}" alt="${item.title} cover" loading="lazy" onerror="this.style.visibility='hidden'">
+          <div>
+            <h3>${item.title}</h3>
+            <p>${score} &middot; ${item.type || "—"} &middot; ${item.status || "—"}</p>
+            <p style="margin-top:6px;">${synopsis}</p>
+          </div>
+          <div class="discover-card__actions">
+            <button type="button" class="btn btn--sm ${tracked ? "btn--ghost" : "btn--accent"}" data-track="${id}"
+              data-title="${item.title.replace(/"/g, '&quot;')}" data-image="${image}" data-url="${item.url || ''}">
+              ${tracked ? "\u2713 Tracking" : "+ Track"}
+            </button>
+            <a class="btn btn--sm btn--ghost" href="${item.url}" target="_blank" rel="noopener">View on MAL</a>
+          </div>
+        </div>`;
+    }
+
+    function bindTrackButtons() {
+      resultsMount.querySelectorAll("[data-track]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.track;
+          const active = await MV.toggleExternal(id, {
+            title: btn.dataset.title,
+            image: btn.dataset.image,
+            url: btn.dataset.url,
+          });
+          btn.textContent = active ? "\u2713 Tracking" : "+ Track";
+          btn.classList.toggle("btn--accent", !active);
+          btn.classList.toggle("btn--ghost", active);
+          MV.toast(active ? "Added to My Library" : "Removed from tracking");
+        });
+      });
+    }
+
+    async function search(query) {
+      if (!query.trim()) {
+        resultsMount.innerHTML = "";
+        statusMount.textContent = "";
+        return;
+      }
+      statusMount.textContent = "Searching MyAnimeList…";
+      resultsMount.innerHTML = "";
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch(
+          "https://api.jikan.moe/v4/anime?q=" + encodeURIComponent(query) + "&limit=12&sfw=true",
+          { signal: controller.signal }
+        );
+        clearTimeout(timeout);
+
+        if (res.status === 429) {
+          statusMount.textContent = "MyAnimeList's search is rate-limited — wait a few seconds and try again.";
+          return;
+        }
+        if (!res.ok) throw new Error("Request failed (" + res.status + ")");
+
+        const data = await res.json();
+        const items = data.data || [];
+        if (!items.length) {
+          statusMount.textContent = "No results for \"" + query + "\".";
+          return;
+        }
+        statusMount.textContent = items.length + " result" + (items.length === 1 ? "" : "s") + " from MyAnimeList.";
+        resultsMount.innerHTML = items.map(cardHTML).join("");
+        bindTrackButtons();
+      } catch (err) {
+        console.error("Discover search failed:", err);
+        if (location.protocol === "file:") {
+          statusMount.textContent = "Can't reach MyAnimeList when the page is opened directly from a file. Serve this site over http:// (e.g. \"python3 -m http.server\") or host it online, then try again.";
+        } else if (err.name === "AbortError") {
+          statusMount.textContent = "MyAnimeList took too long to respond. Try again in a moment.";
+        } else {
+          statusMount.textContent = "Couldn't reach MyAnimeList right now (" + (err.message || "network error") + "). Check your connection and try again.";
+        }
+      }
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const q = input.value.trim();
+      history.replaceState(null, "", location.pathname + (q ? "?q=" + encodeURIComponent(q) : ""));
+      search(q);
+    });
+
+    if (initialQuery) search(initialQuery);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About — AIO MangaVerse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="site-nav"></div>
+
+<header style="background:var(--ink);color:var(--paper);border-bottom:4px solid var(--accent);padding:48px 0;">
+  <div class="container">
+    <span class="eyebrow">About</span>
+    <h1 style="font-size:clamp(2rem,4vw,3.2rem);">Made by a fan, for fans</h1>
+  </div>
+</header>
+
+<main class="container section" style="max-width:760px;">
+  <p style="font-size:1.05rem;">
+    I'm Deepak Rastogi, and AIO MangaVerse is my ongoing love letter to manga and
+    anime — a place to catalog the series I care about and give other readers a
+    calmer, ad-free way to browse and track them.
+  </p>
+
+  <h2 style="margin-top:36px;">Our journey</h2>
+  <p>
+    AIO MangaVerse started in 2023 as a small personal project to share favorite
+    titles with fellow readers. It's grown steadily since then — a genre-based
+    catalog, a personal reading library, ratings, and reviews — always built one
+    honest feature at a time rather than all at once.
+  </p>
+
+  <h2 style="margin-top:36px;">What's here</h2>
+  <p>
+    A curated set of titles spanning action, adventure, romance, horror, isekai,
+    and more. Each entry has its own page with a synopsis, genre tags, a star
+    rating, and space for reader reviews. Bookmark anything into <a href="library.html">My Library</a>
+    and mark your progress as you go — reading, completed, or dropped.
+  </p>
+
+  <h2 style="margin-top:36px;">A note on accounts</h2>
+  <p>
+    Login and Sign Up are backed by real Supabase accounts — your library, ratings,
+    reviews, and reading progress are tied to your account, not just one browser, and
+    stay private to you (enforced by database-level security policies, not just app
+    code). Use a password you're comfortable with; it's hashed by Supabase Auth, never
+    stored in plain text.
+  </p>
+
+  <h2 id="contact" style="margin-top:36px;">Connect with Me</h2>
+  <p>
+    Join me in embracing the enchantment of manga. Share your insights, reviews, and
+    recommendations as we collectively build a vibrant community that celebrates the
+    extraordinary world of manga. Got a title you think belongs in the catalog, or
+    spotted something broken? Feel free to reach out anytime.
+  </p>
+  <a class="btn btn--accent" href="mailto:deepakrastogi78586@gmail.com">deepakrastogi78586@gmail.com</a>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

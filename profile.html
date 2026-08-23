@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Profile — AIO MangaVerse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="site-nav"></div>
+
+<div id="profileRoot"></div>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    await MV.ready;
+    const root = document.getElementById("profileRoot");
+    const session = MV.getSession();
+
+    if (!session) {
+      root.innerHTML = `
+        <header style="background:var(--ink);color:var(--paper);border-bottom:4px solid var(--accent);padding:48px 0;">
+          <div class="container">
+            <span class="eyebrow">Profile</span>
+            <h1 style="font-size:clamp(2rem,4vw,3.2rem);">You're not logged in</h1>
+          </div>
+        </header>
+        <main class="container section" style="max-width:640px;">
+          <div class="empty-state" style="border-style:solid;">
+            <h3>Log in to see your profile</h3>
+            <p>Your reading stats, ratings, and account details live here once you're signed in.</p>
+            <a class="btn btn--accent" href="login.html">Login / Sign up</a>
+          </div>
+        </main>`;
+      return;
+    }
+
+    const lib = MV.getLibrary();
+    const slugs = Object.keys(lib);
+    const titles = slugs.map((s) => MV.findBySlug(s)).filter(Boolean);
+
+    const byStatus = { "Reading": 0, "Plan to Read": 0, "Completed": 0, "Dropped": 0 };
+    titles.forEach((t) => {
+      const st = lib[t.slug].status || "Plan to Read";
+      if (byStatus[st] !== undefined) byStatus[st]++;
+    });
+
+    const rated = titles.filter((t) => lib[t.slug].rating > 0);
+    const avgRating = rated.length
+      ? (rated.reduce((sum, t) => sum + lib[t.slug].rating, 0) / rated.length).toFixed(1)
+      : "—";
+
+    const genreCounts = {};
+    titles.forEach((t) => t.genres.forEach((g) => { genreCounts[g] = (genreCounts[g] || 0) + 1; }));
+    const topGenre = Object.entries(genreCounts).sort((a, b) => b[1] - a[1])[0];
+
+    const joined = session.createdAt ? new Date(session.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "—";
+
+    root.innerHTML = `
+      <header style="background:var(--ink);color:var(--paper);border-bottom:4px solid var(--accent);padding:48px 0;">
+        <div class="container profile-head">
+          <div class="profile-avatar">${session.username.trim().charAt(0).toUpperCase()}</div>
+          <div>
+            <span class="eyebrow">Profile</span>
+            <h1 style="font-size:clamp(2rem,4vw,3rem);margin-bottom:2px;">${session.username}</h1>
+            <p style="color:var(--paper-dim);margin:0;">${session.email || ""} &middot; Member since ${joined}</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="container section">
+        <h2>Reading stats</h2>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-card__num">${titles.length}</div><div class="stat-card__label">Titles tracked</div></div>
+          <div class="stat-card"><div class="stat-card__num">${byStatus["Reading"]}</div><div class="stat-card__label">Currently reading</div></div>
+          <div class="stat-card"><div class="stat-card__num">${byStatus["Completed"]}</div><div class="stat-card__label">Completed</div></div>
+          <div class="stat-card"><div class="stat-card__num">${avgRating}</div><div class="stat-card__label">Avg. rating given</div></div>
+          <div class="stat-card"><div class="stat-card__num" style="font-size:1.5rem;">${topGenre ? topGenre[0] : "—"}</div><div class="stat-card__label">Favorite genre</div></div>
+        </div>
+
+        <h2>Account</h2>
+        <p class="text-muted">Backed by a real Supabase account — your library, reviews, and progress sync wherever you log in, and no one else can read or edit them (enforced by row-level security).</p>
+        <div class="data-actions">
+          <a class="btn btn--ghost" href="library.html">View My Library</a>
+          <button class="btn btn--ghost" id="profileLogout" type="button">Log out</button>
+        </div>
+      </main>`;
+
+    document.getElementById("profileLogout").addEventListener("click", async () => {
+      await MV.logout();
+      MV.toast("Logged out");
+      setTimeout(() => location.href = "index.html", 400);
+    });
+  });
+</script>
+</body>
+</html>
