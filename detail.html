@@ -54,24 +54,24 @@
     root.innerHTML = `
       <header class="detail-hero">
         <div class="container detail-grid">
-          <div class="detail-cover"><img src="${anime.image}" alt="${anime.title} cover"></div>
+          <div class="detail-cover"><img src="${anime.image}" alt="${MV.escapeHTML(anime.title)} cover"></div>
           <div>
-            <span class="eyebrow">${anime.genres[0]}</span>
-            <h1 style="font-size:clamp(2.2rem,4.5vw,3.4rem);">${anime.title}</h1>
+            <span class="eyebrow">${MV.escapeHTML(anime.genres[0])}</span>
+            <h1 style="font-size:clamp(2.2rem,4.5vw,3.4rem);">${MV.escapeHTML(anime.title)}</h1>
             <div class="detail-meta-row">
               <span class="stat"><strong>${anime.rating.toFixed(1)}</strong> &#9733; average</span>
-              <span class="stat">${anime.type}</span>
-              <span class="stat">${anime.status}</span>
-              <span class="stat">${anime.chapters}</span>
+              <span class="stat">${MV.escapeHTML(anime.type)}</span>
+              <span class="stat">${MV.escapeHTML(anime.status)}</span>
+              <span class="stat">${MV.escapeHTML(anime.chapters)}</span>
               <span class="stat">Since ${anime.year}</span>
             </div>
             <div class="card__genres">
-              ${anime.genres.map((g) => `<a class="tag tag--cobalt" href="browse.html?genre=${encodeURIComponent(g)}">${g}</a>`).join("")}
+              ${anime.genres.map((g) => `<a class="tag tag--cobalt" href="browse.html?genre=${encodeURIComponent(g)}">${MV.escapeHTML(g)}</a>`).join("")}
             </div>
-            <p class="hero__lede" style="color:var(--paper-dim);margin-top:18px;">${anime.synopsis}</p>
+            <p class="hero__lede" style="color:var(--paper-dim);margin-top:18px;">${MV.escapeHTML(anime.synopsis)}</p>
             <div class="detail-actions">
               <button class="btn btn--accent" id="bookmarkBtn" type="button">${bookmarked ? "\u2713 In My Library" : "+ Add to My Library"}</button>
-              <a class="btn btn--ghost" style="border-color:var(--paper);color:var(--paper)" href="browse.html?genre=${encodeURIComponent(anime.genres[0])}">More ${anime.genres[0]}</a>
+              <a class="btn btn--ghost" style="border-color:var(--paper);color:var(--paper)" href="browse.html?genre=${encodeURIComponent(anime.genres[0])}">More ${MV.escapeHTML(anime.genres[0])}</a>
             </div>
           </div>
         </div>
@@ -86,14 +86,14 @@
             <div id="progressSummary"></div>
             ${anime.arcs.map((season, si) => `
               <div class="arc-block">
-                ${anime.arcs.length > 1 ? `<h3>${season.season}</h3>` : ""}
+                ${anime.arcs.length > 1 ? `<h3>${MV.escapeHTML(season.season)}</h3>` : ""}
                 <div class="arc-list">
                   ${season.chapters.map((ch, ci) => `
                     <div class="arc-item" data-key="${si}-${ci}">
-                      <input type="checkbox" class="arc-check" aria-label="Mark '${ch.title}' as read">
+                      <input type="checkbox" class="arc-check" aria-label="Mark '${MV.escapeHTML(ch.title)}' as read">
                       <details style="flex:1;">
-                        <summary>${ch.title}</summary>
-                        <p>${ch.blurb}</p>
+                        <summary>${MV.escapeHTML(ch.title)}</summary>
+                        <p>${MV.escapeHTML(ch.blurb)}</p>
                       </details>
                     </div>`).join("")}
                 </div>
@@ -128,7 +128,7 @@
             <div class="sidebar-box">
               <h3>Where to watch / read</h3>
               <p style="font-size:0.82rem;color:var(--muted);margin-bottom:14px;">
-                Links open a search for "${anime.title}" on official, licensed platforms.
+                Links open a search for "${MV.escapeHTML(anime.title)}" on official, licensed platforms.
                 Availability depends on your region and what's currently licensed there.
               </p>
               <div style="display:flex;flex-direction:column;gap:8px;">
@@ -266,10 +266,10 @@
     const relMount = document.getElementById("relatedList");
     relMount.innerHTML = related.length
       ? related.map((a) => `
-          <a class="rank-item" style="margin-bottom:10px;" href="detail.html?slug=${a.slug}">
+          <a class="rank-item" style="margin-bottom:10px;" href="detail.html?slug=${encodeURIComponent(a.slug)}">
             <img src="${a.image}" alt="">
             <span>
-              <span class="rank-item__title">${a.title}</span><br>
+              <span class="rank-item__title">${MV.escapeHTML(a.title)}</span><br>
               <span class="rank-item__meta">${a.rating.toFixed(1)} &#9733;</span>
             </span>
           </a>`).join("")
