@@ -18,9 +18,9 @@
    ============================================================ */
 
 const MV = (() => {
-  const SUPABASE_URL = "https://hulqvystnqvcofsmcwkd.supabase.co";
+  const SUPABASE_URL = "https://nmqgidutarvdmkmhprcq.supabase.co";
   const SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1bHF2eXN0bnF2Y29mc21jd2tkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyODgxNjEsImV4cCI6MjEwMjg2NDE2MX0.ZPGTOOTsuROJsKAPqvwDoXkDTaFuzCRxWdbged5Lz9A";
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tcWdpZHV0YXJ2ZG1rbWhwcmNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxNjI4MDQsImV4cCI6MjExMDczODgwNH0.0wdJ1gluddnHj4c63zxPUoa_U1wCLFJ3JBhhD_7_c7g";
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
