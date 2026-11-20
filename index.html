@@ -134,7 +134,7 @@
 
     // Genre cloud
     document.getElementById("genreCloud").innerHTML = ALL_GENRES.map(
-      (g) => `<a class="chip" href="browse.html?genre=${encodeURIComponent(g)}">${g}</a>`
+      (g) => `<a class="chip" href="browse.html?genre=${encodeURIComponent(g)}">${MV.escapeHTML(g)}</a>`
     ).join("");
 
     // Popular grid: highest rated, 8 titles
@@ -144,12 +144,12 @@
     // Ranking sidebar: top 5
     const rankMount = document.getElementById("rankList");
     rankMount.innerHTML = byRating.slice(0, 5).map((a, i) => `
-      <a class="rank-item" href="detail.html?slug=${a.slug}">
+      <a class="rank-item" href="detail.html?slug=${encodeURIComponent(a.slug)}">
         <span class="rank-item__num">${i + 1}</span>
-        <img src="${a.image}" alt="">
+        <img src="${a.image}" alt="${MV.escapeHTML(a.title)}">
         <span>
           <span class="rank-item__title">${MV.escapeHTML(a.title)}</span><br>
-          <span class="rank-item__meta">${a.rating.toFixed(1)} &#9733; &middot; ${a.genres[0]}</span>
+          <span class="rank-item__meta">${a.rating.toFixed(1)} &#9733; &middot; ${MV.escapeHTML(a.genres[0])}</span>
         </span>
       </a>`).join("");
 
