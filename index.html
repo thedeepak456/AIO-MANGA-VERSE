@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIO MangaVerse — Track, browse & rate manga and anime</title>
+<meta name="description" content="A fan-run catalog of manga and anime. Browse by genre, keep a personal reading library, and rate what you've read.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="site-nav"></div>
+
+<header class="hero">
+  <div class="hero__speedlines" aria-hidden="true"></div>
+  <div class="hero__grid">
+    <div>
+      <span class="eyebrow">Chapter 01 &middot; Welcome</span>
+      <h1 class="hero__title">Every series<br>you love, <span class="stroke">tracked</span>.</h1>
+      <p class="hero__lede">
+        AIO MangaVerse is a fan-built home base for manga and anime: browse by genre,
+        build a personal library, mark what you're reading, and rate the ones that
+        wrecked you. No algorithms — just a shelf you control.
+      </p>
+      <div class="hero__cta">
+        <a href="browse.html" class="btn btn--accent">Browse the catalog</a>
+        <a href="login.html" class="btn btn--ghost" style="border-color:var(--paper);color:var(--paper)">Create free account</a>
+      </div>
+    </div>
+    <div class="hero__panel">
+      <span class="hero__stamp">Featured</span>
+      <img id="heroImg" src="Image/Img-aot-1.jpeg" alt="Featured series cover">
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="section" id="recentSection" style="display:none;">
+    <div class="section__head">
+      <div>
+        <span class="eyebrow">Pick up where you left off</span>
+        <h2>Recently viewed</h2>
+      </div>
+    </div>
+    <div class="recent-strip" id="recentStrip"></div>
+  </section>
+
+  <section class="section">
+    <div class="section__head">
+      <div>
+        <span class="eyebrow">Genres</span>
+        <h2>Jump into a mood</h2>
+      </div>
+    </div>
+    <div class="chip-cloud" id="genreCloud"></div>
+  </section>
+
+  <section class="section home-split" style="padding-top:0;">
+    <div>
+      <div class="section__head">
+        <div>
+          <span class="eyebrow">Popular right now</span>
+          <h2>Reader favorites</h2>
+        </div>
+        <a href="browse.html?sort=rating" class="btn btn--sm btn--ghost">See all top rated &rarr;</a>
+      </div>
+      <div class="panel-grid" id="popularGrid"></div>
+    </div>
+
+    <aside>
+      <div class="section__head" style="margin-bottom:16px;">
+        <div>
+          <span class="eyebrow">Leaderboard</span>
+          <h2 style="font-size:1.6rem;">Top ranking</h2>
+        </div>
+      </div>
+      <div class="rank-list" id="rankList"></div>
+    </aside>
+  </section>
+
+  <section class="section full-bleed">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <span class="eyebrow">Fresh adds</span>
+          <h2>Recently added to the catalog</h2>
+        </div>
+      </div>
+      <div class="panel-grid" id="recentGrid"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__head">
+      <div>
+        <span class="eyebrow">Isekai &amp; beyond</span>
+        <h2>If you liked those, try these</h2>
+      </div>
+    </div>
+    <div class="panel-grid" id="isekaiGrid"></div>
+  </section>
+
+</main>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    await MV.ready;
+
+    // Hero: rotate through a few strong covers
+    const heroPool = ["attack-on-titan", "vinland-saga", "chainsaw-man", "demon-slayer", "one-piece"];
+    const heroSlug = heroPool[Math.floor(Math.random() * heroPool.length)];
+    const heroAnime = MV.findBySlug(heroSlug);
+    if (heroAnime) {
+      document.getElementById("heroImg").src = heroAnime.image;
+      document.getElementById("heroImg").alt = heroAnime.title + " cover";
+    }
+
+    // Recently viewed (only shows if the visitor has viewed something before)
+    const recent = MV.getRecentlyViewed();
+    if (recent.length) {
+      document.getElementById("recentSection").style.display = "";
+      const strip = document.getElementById("recentStrip");
+      strip.innerHTML = recent.map((a) => MV.cardHTML(a)).join("");
+      MV.bindBookmarkButtons(strip);
+    }
+
+    // Genre cloud
+    document.getElementById("genreCloud").innerHTML = ALL_GENRES.map(
+      (g) => `<a class="chip" href="browse.html?genre=${encodeURIComponent(g)}">${g}</a>`
+    ).join("");
+
+    // Popular grid: highest rated, 8 titles
+    const byRating = [...ANIME_DATA].sort((a, b) => b.rating - a.rating);
+    MV.renderGrid(document.getElementById("popularGrid"), byRating.slice(0, 8));
+
+    // Ranking sidebar: top 5
+    const rankMount = document.getElementById("rankList");
+    rankMount.innerHTML = byRating.slice(0, 5).map((a, i) => `
+      <a class="rank-item" href="detail.html?slug=${a.slug}">
+        <span class="rank-item__num">${i + 1}</span>
+        <img src="${a.image}" alt="">
+        <span>
+          <span class="rank-item__title">${MV.escapeHTML(a.title)}</span><br>
+          <span class="rank-item__meta">${a.rating.toFixed(1)} &#9733; &middot; ${a.genres[0]}</span>
+        </span>
+      </a>`).join("");
+
+    // Recently added: last 8 in data array (treat array order as recency)
+    MV.renderGrid(document.getElementById("recentGrid"), ANIME_DATA.slice(-8).reverse(), { badge: "New" });
+
+    // Isekai / adventure rail
+    const isekai = ANIME_DATA.filter((a) => a.genres.includes("Isekai")).slice(0, 4);
+    MV.renderGrid(document.getElementById("isekaiGrid"), isekai);
+  });
+</script>
+</body>
+</html>

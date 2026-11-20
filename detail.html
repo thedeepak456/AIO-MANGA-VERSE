@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">Loading… — AIO MangaVerse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="site-nav"></div>
+
+<div id="detailRoot">
+  <!-- filled by JS; shows a friendly not-found state if the slug doesn't match anything -->
+</div>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    await MV.ready;
+    const slug = new URLSearchParams(location.search).get("slug");
+    const anime = slug ? MV.findBySlug(slug) : null;
+    const root = document.getElementById("detailRoot");
+
+    if (!anime) {
+      document.getElementById("pageTitle").textContent = "Title not found — AIO MangaVerse";
+      root.innerHTML = `
+        <main class="container section">
+          <div class="empty-state">
+            <h3>We couldn't find that title</h3>
+            <p>It may have been removed, or the link is off. Try browsing the full catalog instead.</p>
+            <a class="btn btn--accent" href="browse.html">Browse the catalog</a>
+          </div>
+        </main>`;
+      return;
+    }
+
+    document.getElementById("pageTitle").textContent = anime.title + " — AIO MangaVerse";
+    MV.addRecentlyViewed(anime.slug);
+
+    const bookmarked = MV.isBookmarked(anime.slug);
+    const entry = MV.getEntry(anime.slug);
+    const currentStatus = entry ? entry.status : null;
+    const currentRating = entry ? entry.rating : 0;
+
+    const statuses = ["Plan to Read", "Reading", "Completed", "Dropped"];
+
+    root.innerHTML = `
+      <header class="detail-hero">
+        <div class="container detail-grid">
+          <div class="detail-cover"><img src="${anime.image}" alt="${anime.title} cover"></div>
+          <div>
+            <span class="eyebrow">${anime.genres[0]}</span>
+            <h1 style="font-size:clamp(2.2rem,4.5vw,3.4rem);">${anime.title}</h1>
+            <div class="detail-meta-row">
+              <span class="stat"><strong>${anime.rating.toFixed(1)}</strong> &#9733; average</span>
+              <span class="stat">${anime.type}</span>
+              <span class="stat">${anime.status}</span>
+              <span class="stat">${anime.chapters}</span>
+              <span class="stat">Since ${anime.year}</span>
+            </div>
+            <div class="card__genres">
+              ${anime.genres.map((g) => `<a class="tag tag--cobalt" href="browse.html?genre=${encodeURIComponent(g)}">${g}</a>`).join("")}
+            </div>
+            <p class="hero__lede" style="color:var(--paper-dim);margin-top:18px;">${anime.synopsis}</p>
+            <div class="detail-actions">
+              <button class="btn btn--accent" id="bookmarkBtn" type="button">${bookmarked ? "\u2713 In My Library" : "+ Add to My Library"}</button>
+              <a class="btn btn--ghost" style="border-color:var(--paper);color:var(--paper)" href="browse.html?genre=${encodeURIComponent(anime.genres[0])}">More ${anime.genres[0]}</a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="detail-body">
+        <div class="container">
+          <div>
+            ${anime.arcs ? `
+            <h2>Arc &amp; chapter guide</h2>
+            <p class="text-muted">A quick look at how the story unfolds, season by season. Check off arcs as you read to track your progress.</p>
+            <div id="progressSummary"></div>
+            ${anime.arcs.map((season, si) => `
+              <div class="arc-block">
+                ${anime.arcs.length > 1 ? `<h3>${season.season}</h3>` : ""}
+                <div class="arc-list">
+                  ${season.chapters.map((ch, ci) => `
+                    <div class="arc-item" data-key="${si}-${ci}">
+                      <input type="checkbox" class="arc-check" aria-label="Mark '${ch.title}' as read">
+                      <details style="flex:1;">
+                        <summary>${ch.title}</summary>
+                        <p>${ch.blurb}</p>
+                      </details>
+                    </div>`).join("")}
+                </div>
+              </div>`).join("")}
+            ` : ""}
+
+            <h2>Your progress</h2>
+            <p class="text-muted">Synced to your account — set what you're up to and rate it once you've read it.</p>
+            <div class="status-toggle" id="statusToggle">
+              ${statuses.map((s) => `<button type="button" data-status="${s}" class="${currentStatus === s ? "is-active" : ""}">${s}</button>`).join("")}
+            </div>
+
+            <div style="margin-top:24px;">
+              <h3 style="font-size:1rem;">Your rating</h3>
+              <div class="rating-stars" id="ratingStars" role="radiogroup" aria-label="Your rating">
+                ${[1,2,3,4,5].map((n) => `<span class="star ${n <= currentRating ? "filled" : ""}" data-val="${n}" role="radio" aria-checked="${n === currentRating}" tabindex="0">\u2605</span>`).join("")}
+              </div>
+            </div>
+
+            <h2 style="margin-top:44px;">Reviews</h2>
+            <form id="reviewForm" style="margin-bottom:24px;">
+              <div class="field">
+                <label for="reviewText">Leave a review</label>
+                <textarea id="reviewText" rows="3" placeholder="What did you think?" required></textarea>
+              </div>
+              <button class="btn btn--sm btn--accent" type="submit">Post review</button>
+            </form>
+            <div id="reviewsList"><p class="text-muted">Loading reviews&hellip;</p></div>
+          </div>
+
+          <aside>
+            <div class="sidebar-box">
+              <h3>Where to watch / read</h3>
+              <p style="font-size:0.82rem;color:var(--muted);margin-bottom:14px;">
+                Links open a search for "${anime.title}" on official, licensed platforms.
+                Availability depends on your region and what's currently licensed there.
+              </p>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <a class="btn btn--sm btn--accent btn--full" target="_blank" rel="noopener"
+                   href="https://www.crunchyroll.com/search?q=${encodeURIComponent(anime.title)}">Watch on Crunchyroll</a>
+                <a class="btn btn--sm btn--ghost btn--full" target="_blank" rel="noopener"
+                   href="https://mangaplus.shueisha.co.jp/search_result?keyword=${encodeURIComponent(anime.title)}">Read on MANGA Plus</a>
+                <a class="btn btn--sm btn--ghost btn--full" target="_blank" rel="noopener"
+                   href="https://myanimelist.net/search/all?q=${encodeURIComponent(anime.title)}">More info on MyAnimeList</a>
+              </div>
+            </div>
+            <div class="sidebar-box">
+              <h3>You might also like</h3>
+              <div id="relatedList"></div>
+            </div>
+          </aside>
+        </div>
+      </section>`;
+
+    // bookmark
+    document.getElementById("bookmarkBtn").addEventListener("click", async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      const active = await MV.toggleBookmark(anime.slug);
+      btn.disabled = false;
+      btn.textContent = active ? "\u2713 In My Library" : "+ Add to My Library";
+      MV.toast(active ? "Added to My Library" : "Removed from My Library");
+    });
+
+    // arc / chapter progress
+    if (anime.arcs) {
+      const progressMount = document.getElementById("progressSummary");
+      let doneMap = await MV.getProgress(anime.slug);
+
+      function paintProgress() {
+        const stats = MV.computeProgressStats(anime, doneMap);
+        progressMount.innerHTML = `
+          <span class="progress-label">${stats.read} of ${stats.total} chapters read &middot; ${stats.pct}%</span>
+          <div class="progress-bar-track"><div class="progress-bar-fill" style="width:${stats.pct}%;"></div></div>`;
+      }
+      function paintChecks() {
+        document.querySelectorAll(".arc-item[data-key]").forEach((row) => {
+          const key = row.dataset.key;
+          const isDone = !!doneMap[key];
+          row.classList.toggle("is-read", isDone);
+          row.querySelector(".arc-check").checked = isDone;
+        });
+      }
+      document.querySelectorAll(".arc-item[data-key] .arc-check").forEach((box) => {
+        box.addEventListener("click", (e) => e.stopPropagation());
+        box.addEventListener("change", async () => {
+          const row = box.closest(".arc-item");
+          const key = row.dataset.key;
+          const done = box.checked;
+          doneMap = { ...doneMap };
+          if (done) doneMap[key] = true; else delete doneMap[key];
+          paintChecks();
+          paintProgress();
+          await MV.setProgressItem(anime.slug, key, done);
+        });
+      });
+      paintChecks();
+      paintProgress();
+    }
+
+    // status toggle
+    document.getElementById("statusToggle").addEventListener("click", async (e) => {
+      const btn = e.target.closest("button[data-status]");
+      if (!btn) return;
+      document.querySelectorAll("#statusToggle button").forEach((b) => b.classList.toggle("is-active", b === btn));
+      await MV.setStatus(anime.slug, btn.dataset.status);
+      MV.toast("Marked as " + btn.dataset.status);
+    });
+
+    // star rating
+    function paintStars(val) {
+      document.querySelectorAll("#ratingStars .star").forEach((s) => {
+        s.classList.toggle("filled", Number(s.dataset.val) <= val);
+        s.setAttribute("aria-checked", String(Number(s.dataset.val) === val));
+      });
+    }
+    document.getElementById("ratingStars").addEventListener("click", async (e) => {
+      const star = e.target.closest(".star");
+      if (!star) return;
+      const val = Number(star.dataset.val);
+      paintStars(val);
+      await MV.setRating(anime.slug, val);
+      MV.toast("Rated " + val + " star" + (val > 1 ? "s" : ""));
+    });
+    document.getElementById("ratingStars").addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      const star = e.target.closest(".star");
+      if (!star) return;
+      star.click();
+    });
+
+    // reviews
+    async function renderReviews() {
+      const reviews = await MV.getReviews(anime.slug);
+      const mount = document.getElementById("reviewsList");
+      if (!reviews.length) {
+        mount.innerHTML = `<p class="text-muted">No reviews yet — be the first to leave one.</p>`;
+        return;
+      }
+      mount.innerHTML = reviews.map((r) => `
+        <div class="review-item">
+          <div class="review-item__head"><span>${MV.escapeHTML(r.author)}</span><span>${MV.escapeHTML(r.date)}</span></div>
+          <p style="margin:0;">${MV.escapeHTML(r.text)}</p>
+        </div>`).join("");
+    }
+    document.getElementById("reviewForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const textEl = document.getElementById("reviewText");
+      const text = textEl.value.trim();
+      if (!text) return;
+      const submitBtn = e.target.querySelector("button[type=submit]");
+      submitBtn.disabled = true;
+      const res = await MV.addReview(anime.slug, text);
+      submitBtn.disabled = false;
+      if (!res.ok) {
+        MV.toast(res.error || "Couldn't post that review");
+        return;
+      }
+      textEl.value = "";
+      await renderReviews();
+      MV.toast("Review posted");
+    });
+    renderReviews();
+
+    // related titles: share a genre, exclude self
+    const related = ANIME_DATA.filter(
+      (a) => a.slug !== anime.slug && a.genres.some((g) => anime.genres.includes(g))
+    ).slice(0, 4);
+    const relMount = document.getElementById("relatedList");
+    relMount.innerHTML = related.length
+      ? related.map((a) => `
+          <a class="rank-item" style="margin-bottom:10px;" href="detail.html?slug=${a.slug}">
+            <img src="${a.image}" alt="">
+            <span>
+              <span class="rank-item__title">${a.title}</span><br>
+              <span class="rank-item__meta">${a.rating.toFixed(1)} &#9733;</span>
+            </span>
+          </a>`).join("")
+      : `<p class="text-muted">No related titles yet.</p>`;
+  });
+</script>
+</body>
+</html>

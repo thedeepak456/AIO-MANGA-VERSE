@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Browse — AIO MangaVerse</title>
+<meta name="description" content="Browse and search the full AIO MangaVerse catalog by genre, rating, or title.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="site-nav"></div>
+
+<header style="background:var(--ink);color:var(--paper);border-bottom:4px solid var(--accent);padding:40px 0;">
+  <div class="container">
+    <span class="eyebrow">Catalog</span>
+    <h1 style="font-size:clamp(2rem,4vw,3.2rem);">Browse everything</h1>
+    <p class="text-muted" style="color:var(--paper-dim);max-width:60ch;">Filter by genre, search by title, or sort by rating — <span id="resultCount">0</span> titles in the catalog.</p>
+  </div>
+</header>
+
+<main class="container section">
+  <div class="flex-between" style="margin-bottom:20px;">
+    <div style="flex:1;min-width:220px;">
+      <input id="searchBox" type="search" placeholder="Search by title&hellip;" aria-label="Search by title"
+        style="width:100%;max-width:420px;padding:12px 14px;border:2px solid var(--ink);font-family:var(--font-body);font-size:0.95rem;">
+    </div>
+    <div>
+      <label for="sortSelect" style="font-family:var(--font-mono);font-size:0.75rem;text-transform:uppercase;margin-right:8px;">Sort</label>
+      <select id="sortSelect" style="padding:10px 12px;border:2px solid var(--ink);font-family:var(--font-body);">
+        <option value="rating">Highest rated</option>
+        <option value="title">Title A&ndash;Z</option>
+        <option value="year">Newest first</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="chip-cloud" id="genreFilters" style="margin-bottom:20px;"></div>
+
+  <div class="filter-panel">
+    <div class="filter-field">
+      <label for="statusFilter">Status</label>
+      <select id="statusFilter">
+        <option value="">Any</option>
+        <option value="Ongoing">Ongoing</option>
+        <option value="Completed">Completed</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="ratingFilter">Minimum rating</label>
+      <select id="ratingFilter">
+        <option value="0">Any</option>
+        <option value="4.5">4.5 &#9733; and up</option>
+        <option value="4">4.0 &#9733; and up</option>
+        <option value="3.5">3.5 &#9733; and up</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="yearFilter">Started</label>
+      <select id="yearFilter">
+        <option value="">Any year</option>
+        <option value="2020">2020s</option>
+        <option value="2010">2010s</option>
+        <option value="2000">2000s</option>
+        <option value="0">Before 2000</option>
+      </select>
+    </div>
+    <button type="button" class="filter-reset" id="filterReset">Reset filters</button>
+  </div>
+
+  <div class="panel-grid" id="resultsGrid"></div>
+  <div class="pagination" id="pagination"></div>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    await MV.ready;
+    const params = new URLSearchParams(location.search);
+    let activeGenre = params.get("genre") || "";
+    let query = params.get("q") || "";
+    let sort = params.get("sort") || "rating";
+    let status = params.get("status") || "";
+    let minRating = Number(params.get("minRating") || 0);
+    let minYear = params.get("minYear") || "";
+    let page = Number(params.get("page") || 1);
+    const PAGE_SIZE = 12;
+
+    const searchBox = document.getElementById("searchBox");
+    const sortSelect = document.getElementById("sortSelect");
+    const genreMount = document.getElementById("genreFilters");
+    const resultsMount = document.getElementById("resultsGrid");
+    const countMount = document.getElementById("resultCount");
+    const statusFilter = document.getElementById("statusFilter");
+    const ratingFilter = document.getElementById("ratingFilter");
+    const yearFilter = document.getElementById("yearFilter");
+    const paginationMount = document.getElementById("pagination");
+
+    searchBox.value = query;
+    sortSelect.value = sort;
+    statusFilter.value = status;
+    ratingFilter.value = String(minRating);
+    yearFilter.value = minYear;
+
+    function renderChips() {
+      const chips = ["All", ...ALL_GENRES];
+      genreMount.innerHTML = chips.map((g) => {
+        const val = g === "All" ? "" : g;
+        const isActive = val === activeGenre ? "is-active" : "";
+        return `<button type="button" class="chip ${isActive}" data-genre="${val}">${g}</button>`;
+      }).join("");
+      genreMount.querySelectorAll(".chip").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          activeGenre = btn.dataset.genre;
+          page = 1;
+          syncUrl();
+          renderChips();
+          renderResults();
+        });
+      });
+    }
+
+    function syncUrl() {
+      const p = new URLSearchParams();
+      if (activeGenre) p.set("genre", activeGenre);
+      if (query) p.set("q", query);
+      if (sort !== "rating") p.set("sort", sort);
+      if (status) p.set("status", status);
+      if (minRating) p.set("minRating", String(minRating));
+      if (minYear) p.set("minYear", minYear);
+      if (page > 1) p.set("page", String(page));
+      const qs = p.toString();
+      history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
+    }
+
+    function filteredList() {
+      let list = ANIME_DATA.filter((a) => {
+        const matchesGenre = !activeGenre || a.genres.includes(activeGenre);
+        const matchesQuery = !query || a.title.toLowerCase().includes(query.toLowerCase());
+        const matchesStatus = !status || a.status === status;
+        const matchesRating = a.rating >= minRating;
+        const matchesYear = !minYear || (minYear === "0" ? a.year < 2000 : a.year >= Number(minYear));
+        return matchesGenre && matchesQuery && matchesStatus && matchesRating && matchesYear;
+      });
+      if (sort === "title") list.sort((a, b) => a.title.localeCompare(b.title));
+      else if (sort === "year") list.sort((a, b) => b.year - a.year);
+      else list.sort((a, b) => b.rating - a.rating);
+      return list;
+    }
+
+    function renderPagination(totalItems) {
+      const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+      if (page > totalPages) { page = totalPages; syncUrl(); }
+      if (totalPages <= 1) { paginationMount.innerHTML = ""; return; }
+
+      let buttons = `<button type="button" data-page="${page - 1}" ${page === 1 ? "disabled" : ""}>&larr; Prev</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - page) > 1) {
+          if (i === 2 || i === totalPages - 1) buttons += `<span style="padding:0 4px;">&hellip;</span>`;
+          continue;
+        }
+        buttons += `<button type="button" data-page="${i}" class="${i === page ? "is-active" : ""}">${i}</button>`;
+      }
+      buttons += `<button type="button" data-page="${page + 1}" ${page === totalPages ? "disabled" : ""}>Next &rarr;</button>`;
+      paginationMount.innerHTML = buttons;
+
+      paginationMount.querySelectorAll("button[data-page]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          page = Number(btn.dataset.page);
+          syncUrl();
+          renderResults();
+          window.scrollTo({ top: resultsMount.offsetTop - 100, behavior: "smooth" });
+        });
+      });
+    }
+
+    function renderResults() {
+      const list = filteredList();
+      countMount.textContent = list.length;
+      const start = (page - 1) * PAGE_SIZE;
+      MV.renderGrid(resultsMount, list.slice(start, start + PAGE_SIZE));
+      renderPagination(list.length);
+    }
+
+    searchBox.addEventListener("input", () => {
+      query = searchBox.value;
+      page = 1;
+      syncUrl();
+      renderResults();
+    });
+
+    sortSelect.addEventListener("change", () => {
+      sort = sortSelect.value;
+      page = 1;
+      syncUrl();
+      renderResults();
+    });
+
+    [statusFilter, ratingFilter, yearFilter].forEach((el) => {
+      el.addEventListener("change", () => {
+        status = statusFilter.value;
+        minRating = Number(ratingFilter.value);
+        minYear = yearFilter.value;
+        page = 1;
+        syncUrl();
+        renderResults();
+      });
+    });
+
+    document.getElementById("filterReset").addEventListener("click", () => {
+      activeGenre = ""; query = ""; sort = "rating"; status = ""; minRating = 0; minYear = ""; page = 1;
+      searchBox.value = ""; sortSelect.value = "rating"; statusFilter.value = ""; ratingFilter.value = "0"; yearFilter.value = "";
+      syncUrl();
+      renderResults();
+    });
+
+    renderChips();
+    renderResults();
+  });
+</script>
+</body>
+</html>

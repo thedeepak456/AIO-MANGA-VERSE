@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login / Sign Up — AIO MangaVerse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="site-nav"></div>
+
+<main class="container section">
+  <div class="auth-shell" id="authShell">
+    <div class="flex-between" style="margin-bottom:20px;">
+      <h1 style="font-size:1.9rem;margin:0;" id="authHeading">Log in</h1>
+      <div style="display:flex;border:2px solid var(--ink);">
+        <button type="button" id="tabLogin" class="btn btn--sm" style="box-shadow:none;border:none;">Log in</button>
+        <button type="button" id="tabSignup" class="btn btn--sm btn--ghost" style="box-shadow:none;border:none;border-left:2px solid var(--ink);">Sign up</button>
+      </div>
+    </div>
+
+    <div class="form-error" id="formError"></div>
+    <div class="form-success" id="formSuccess"></div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn--accent btn--full">Log in</button>
+    </form>
+
+    <form id="signupForm" style="display:none;">
+      <div class="field">
+        <label for="signupUsername">Username</label>
+        <input type="text" id="signupUsername" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="signupEmail">Email</label>
+        <input type="email" id="signupEmail" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="signupPassword">Password</label>
+        <input type="password" id="signupPassword" autocomplete="new-password" required minlength="6">
+      </div>
+      <button type="submit" class="btn btn--accent btn--full">Create account</button>
+      <p class="form-hint">After you sign up, check your Gmail inbox for a confirmation email — you'll need to confirm it before you can log in.</p>
+    </form>
+
+    <p class="auth-note">
+      Real accounts, backed by Supabase — your library, ratings, reviews, and progress
+      sync to your account and stay private to you (enforced by row-level security,
+      not just app logic).
+    </p>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    await MV.ready;
+    if (MV.getSession()) {
+      location.href = "library.html";
+      return;
+    }
+
+    const tabLogin = document.getElementById("tabLogin");
+    const tabSignup = document.getElementById("tabSignup");
+    const loginForm = document.getElementById("loginForm");
+    const signupForm = document.getElementById("signupForm");
+    const heading = document.getElementById("authHeading");
+    const errorBox = document.getElementById("formError");
+    const successBox = document.getElementById("formSuccess");
+
+    function showTab(tab) {
+      errorBox.classList.remove("show");
+      successBox.classList.remove("show");
+      const isLogin = tab === "login";
+      loginForm.style.display = isLogin ? "block" : "none";
+      signupForm.style.display = isLogin ? "none" : "block";
+      heading.textContent = isLogin ? "Log in" : "Sign up";
+      tabLogin.className = "btn btn--sm " + (isLogin ? "" : "btn--ghost");
+      tabSignup.className = "btn btn--sm " + (isLogin ? "btn--ghost" : "");
+      tabLogin.style.boxShadow = "none";
+      tabSignup.style.boxShadow = "none";
+    }
+    tabLogin.addEventListener("click", () => showTab("login"));
+    tabSignup.addEventListener("click", () => showTab("signup"));
+
+    // deep link: login.html?mode=signup
+    if (new URLSearchParams(location.search).get("mode") === "signup") showTab("signup");
+
+    function setLoading(form, loading) {
+      form.querySelector("button[type=submit]").disabled = loading;
+    }
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("loginEmail").value;
+      const p = document.getElementById("loginPassword").value;
+      setLoading(loginForm, true);
+      const res = await MV.login(email, p);
+      setLoading(loginForm, false);
+      if (!res.ok) {
+        errorBox.textContent = res.error;
+        errorBox.classList.add("show");
+        return;
+      }
+      successBox.textContent = "Logged in — redirecting…";
+      successBox.classList.add("show");
+      setTimeout(() => (location.href = "library.html"), 500);
+    });
+
+    signupForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const u = document.getElementById("signupUsername").value;
+      const em = document.getElementById("signupEmail").value;
+      const p = document.getElementById("signupPassword").value;
+      setLoading(signupForm, true);
+      const res = await MV.signup(u, em, p);
+      setLoading(signupForm, false);
+      if (!res.ok) {
+        errorBox.textContent = res.error;
+        errorBox.classList.add("show");
+        return;
+      }
+      if (res.needsConfirmation) {
+        successBox.textContent = "Account created! Check your Gmail inbox and confirm your email — once confirmed, you can log in.";
+        successBox.classList.add("show");
+        setTimeout(() => showTab("login"), 2400);
+        return;
+      }
+      successBox.textContent = "Account created — redirecting…";
+      successBox.classList.add("show");
+      setTimeout(() => (location.href = "library.html"), 500);
+    });
+  });
+</script>
+</body>
+</html>
