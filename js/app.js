@@ -112,6 +112,7 @@ const MV = (() => {
     username = (username || "").trim();
     email = (email || "").trim();
     if (!username || !email || !password) return { ok: false, error: "All fields are required." };
+     if (username.length > 40) return { ok: false, error: "Username is too long (max 40 characters)." };
 
     const { data, error } = await sb.auth.signUp({
       email,
@@ -365,6 +366,7 @@ const MV = (() => {
 
   async function importData(json) {
     if (!currentUser) return { ok: false, error: "Log in first, then import your backup." };
+     if (typeof json === "string" && json.length > 2 * 1024 * 1024) return { ok: false, error: "Backup file is too large (max 2 MB)." };
     let data;
     try {
       data = JSON.parse(json);
@@ -440,6 +442,7 @@ const MV = (() => {
     if (!currentUser) return { ok: false, error: "Log in to leave a review." };
     const body = (text || "").trim();
     if (!body) return { ok: false, error: "Write something before posting." };
+     if (body.length > 2000) return { ok: false, error: "Reviews are limited to 2000 characters." };
     const { error } = await sb.from("reviews").insert({ user_id: currentUser.id, anime_slug: slug, body });
     if (error) return { ok: false, error: error.message };
     return { ok: true };
