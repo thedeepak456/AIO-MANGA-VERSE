@@ -91,6 +91,20 @@ p { margin: 0 0 1em; }
 }
 
 /* ---------- focus / accessibility ---------- */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 8px 14px;
+  z-index: 100;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+.skip-link:focus {
+  left: 0;
+}
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -98,6 +112,11 @@ select:focus-visible,
 textarea:focus-visible {
   outline: 3px solid var(--cobalt);
   outline-offset: 2px;
+}
+
+/* pause marquee on hover */
+.topbar:hover .topbar__track {
+  animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
