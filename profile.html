@@ -83,7 +83,7 @@
           <div class="stat-card"><div class="stat-card__num">${byStatus["Reading"]}</div><div class="stat-card__label">Currently reading</div></div>
           <div class="stat-card"><div class="stat-card__num">${byStatus["Completed"]}</div><div class="stat-card__label">Completed</div></div>
           <div class="stat-card"><div class="stat-card__num">${avgRating}</div><div class="stat-card__label">Avg. rating given</div></div>
-          <div class="stat-card"><div class="stat-card__num" style="font-size:1.5rem;">${topGenre ? topGenre[0] : "—"}</div><div class="stat-card__label">Favorite genre</div></div>
+          <div class="stat-card"><div class="stat-card__num" style="font-size:1.5rem;">${topGenre ? MV.escapeHTML(topGenre[0]) : "—"}</div><div class="stat-card__label">Favorite genre</div></div>
         </div>
 
         <h2>Account</h2>
